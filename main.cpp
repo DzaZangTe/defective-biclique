@@ -13,12 +13,13 @@ std::vector<int> order, inv;
 void ordering(void)
 {
     order = std::vector<int>(n1 + n2, -1);
-    inv = std::vector<int>(n1 + n2);
+    inv.resize(n1 + n2);
+    edge0.resize(n1 + n2);
     std::priority_queue< std::pair<int, int> > pq;
     for (int i = 0; i < n1; ++i)
-        pq.push(std::make_pair(-edge[i].size(), i));
+        pq.push(std::make_pair(-int(edge[i].size()), i));
     for (int i = 0; i < n2; ++i)
-        pq.push(std::make_pair(-edge[i + n1].size(), i + n1));
+        pq.push(std::make_pair(-int(edge[i + n1].size()), i + n1));
 
     int idx = 0;
     while (!pq.empty()) {
@@ -30,7 +31,7 @@ void ordering(void)
         for (int q : edge[p]) {
             edge[q].erase(p);
             edge0[q].insert(p);
-            pq.push(std::make_pair(-edge[q].size(), q));
+            pq.push(std::make_pair(-int(edge[q].size()), q));
         }
     }
 
@@ -49,11 +50,11 @@ void ordering(void)
 
 void output(const std::vector<int> &RU, const std::vector<int> &RV, const int k)
 {
-    if ((int)RU.size() * (int)RV.size() - ::k + k > ansSize) {
-        ansSize = RU.size() * RV.size() - ::k + k;
+    if (int(RU.size() * RV.size()) - ::k + k > ansSize) {
+        ansSize = int(RU.size() * RV.size()) - ::k + k;
         ans.clear();
     }
-    if ((int)RU.size() * (int)RV.size() - ::k + k == ansSize) {
+    if (int(RU.size() * RV.size()) - ::k + k == ansSize) {
         std::unordered_set<int> tmp;
         for (int ru : RU)
             tmp.insert(ru);
@@ -63,18 +64,17 @@ void output(const std::vector<int> &RU, const std::vector<int> &RV, const int k)
     }
 }
 
-void update(const std::vector<int> RU, const std::vector<int> RV, const int u,
+void update(const std::vector<int> &RU, const std::vector<int> &RV, const int u,
     std::vector<int> &CU, std::vector<int> &CV, const int k)
 {
     std::vector<int> CU_, CV_;
-    std::vector<int> range0(without(CV, neighbor(u)));
     for (int v : CV)
         if (ndegree(v, add(RU, u)) <= k)
             CV_ = add(CV_, v);
-    std::vector<int> range1(without(CU, u));
-    for (int v : range1)
-        if (ndegree(v, RV) <= k)
-            CU_ = add(CU_, v);
+    std::vector<int> range(without(CU, u));
+    for (int u : range)
+        if (ndegree(u, RV) <= k)
+            CU_ = add(CU_, u);
     CU = CU_;
     CV = CV_;
 }
@@ -99,22 +99,13 @@ void dfs(const std::vector<int> RU, const std::vector<int> RV,
     std::vector<int> XU, std::vector<int> XV,
     const int k)
 {
-    std::vector<int> CU_(CU);
-    std::vector<int> CV_(CV);
-    for (int w : CU_)
-        if (ndegree(w, RV) > k)
-            CU = without(CU, w);
-    for (int w : CV_)
-        if (ndegree(w, RU) > k)
-            CV = without(CV, w);
-
     if (CU.size() == 0 && CV.size() == 0) {
         if (XU.size() == 0 && XV.size() == 0)
             output(RU, RV, k);
         return;
     }
 
-    if (int((RU.size()+CU.size())*(RV.size()+CV.size())) - ::k + k < ansSize)
+    if (int((RU.size()+CU.size()) * (RV.size()+CV.size())) - ::k + k < ansSize)
         return;
 
     int pu = findpivot(CU, RV);
@@ -125,7 +116,7 @@ void dfs(const std::vector<int> RU, const std::vector<int> RV,
             CU = without(CU, pu);
             XU = add(XU, pu);
         }
-        CV_ = without(CV, neighbor(pu));
+        std::vector<int> CV_ = without(CV, neighbor(pu));
         for (int w : CV_) {
             if (k - ndegree(w, RU) >= 0 && in(w, CV)) {
                 branch(RV, RU, w, without(CV, w), CU,
@@ -135,8 +126,8 @@ void dfs(const std::vector<int> RU, const std::vector<int> RV,
             }
         }
     } else {
-        CU_ = CU;
-        CV_ = CV;
+        std::vector<int> CU_ = CU;
+        std::vector<int> CV_ = CV;
         for (int w : CU_) {
             if (k - ndegree(w, RV) >= 0 && in(w, CU)) {
                 branch(RU, RV, w, without(CU, w), CV,
@@ -168,6 +159,14 @@ void branch(const std::vector<int> RU, const std::vector<int> RV, const int u,
 
 void search(void)
 {
+    // std::vector<int> CU(n1), CV(n2);
+    // for (int i = 0; i < n1; ++i)
+    //     CU[i] = order[i];
+    // for (int i = 0; i < n2; ++i)
+    //     CV[i] = order[i + n1];
+    // dfs(std::vector<int>(), std::vector<int>(), CU, CV,
+    //     std::vector<int>(), std::vector<int>(), k);
+
     std::vector<int> after(n1 + n2), before;
     for (int i = 0; i < n1 + n2; ++i)
         after[i] = i;
@@ -190,7 +189,6 @@ int main(void)
     freopen("data.out", "w", stdout);
     scanf("%d%d%d%d", &n1, &n2, &m, &k);
     edge.resize(n1 + n2);
-    edge0.resize(n1 + n2);
     for (int i = 0; i < m; ++i) {
         int u, v;
         scanf("%d%d", &u, &v);
@@ -201,10 +199,10 @@ int main(void)
     search();
     for (auto a : ans) {
         int s = 0;
-        for (int x : a) {
-            printf("%d, ", inv[x]);
-            for (int y : a)
-                if (edge[x].find(y) != edge[x].end())
+        for (int u : a) {
+            printf("%d, ", inv[u]);
+            for (int v : a)
+                if (edge[u].find(v) != edge[u].end())
                     ++s;
         }
         printf("sum = %d\n", s / 2);
