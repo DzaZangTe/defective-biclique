@@ -2,10 +2,10 @@
 #include <queue>
 #include <vector>
 #include <algorithm>
-#include <unordered_set>
+#include <set>
 
 int n1,n2, m, k, ansSize;
-std::vector< std::unordered_set<int> > edge, edge0, ans;
+std::vector< std::set<int> > edge, edge0, ans;
 std::vector<int> order, inv;
 
 #include "set.hpp"
@@ -50,16 +50,18 @@ void ordering(void)
 
 void output(const std::vector<int> &RU, const std::vector<int> &RV, const int k)
 {
+    if (int(RU.size()) <= ::k || int(RV.size()) <= ::k)
+        return;
     if (int(RU.size() * RV.size()) - ::k + k > ansSize) {
         ansSize = int(RU.size() * RV.size()) - ::k + k;
         ans.clear();
     }
     if (int(RU.size() * RV.size()) - ::k + k == ansSize) {
-        std::unordered_set<int> tmp;
+        std::set<int> tmp;
         for (int ru : RU)
-            tmp.insert(ru);
+            tmp.insert(inv[ru]);
         for (int rv : RV)
-            tmp.insert(rv);
+            tmp.insert(inv[rv]);
         ans.emplace_back(tmp);
     }
 }
@@ -159,14 +161,6 @@ void branch(const std::vector<int> RU, const std::vector<int> RV, const int u,
 
 void search(void)
 {
-    // std::vector<int> CU(n1), CV(n2);
-    // for (int i = 0; i < n1; ++i)
-    //     CU[i] = order[i];
-    // for (int i = 0; i < n2; ++i)
-    //     CV[i] = order[i + n1];
-    // dfs(std::vector<int>(), std::vector<int>(), CU, CV,
-    //     std::vector<int>(), std::vector<int>(), k);
-
     std::vector<int> after(n1 + n2), before;
     for (int i = 0; i < n1 + n2; ++i)
         after[i] = i;
@@ -192,17 +186,17 @@ int main(void)
     for (int i = 0; i < m; ++i) {
         int u, v;
         scanf("%d%d", &u, &v);
-        edge[u].insert(v);
-        edge[v].insert(u);
+        edge[u].insert(v + n1);
+        edge[v + n1].insert(u);
     }
     ordering();
     search();
     for (auto a : ans) {
         int s = 0;
         for (int u : a) {
-            printf("%d, ", inv[u]);
+            printf("%d, ", u);
             for (int v : a)
-                if (edge[u].find(v) != edge[u].end())
+                if (edge[order[u]].find(order[v]) != edge[order[u]].end())
                     ++s;
         }
         printf("sum = %d\n", s / 2);
